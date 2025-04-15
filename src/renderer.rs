@@ -3,7 +3,7 @@ use sdl3::{
     render::{Canvas, RenderTarget, Texture, TextureAccess, TextureCreator, TextureValueError},
 };
 
-use crate::{camera::Camera, scene::{HitData, Scene}};
+use crate::{camera::{Camera, Ray}, scene::{HitData, Scene}};
 
 pub struct Renderer<'a> {
     texture: Texture<'a>,
@@ -40,7 +40,6 @@ impl<'a> Renderer<'a> {
                     color,
                 }) => {
                     // correct fish eye
-                    // dist *= (ray.dir.to_angle() - camera.rot).cos();
                     dist = camera.get_perp_dist_to(point);
                     
                     let projection_distance = self.width as f64 / (2.0 * (camera.fov/2.0).tan());
@@ -54,14 +53,14 @@ impl<'a> Renderer<'a> {
                         if (space..end_y).contains(&y) {
                             self.set_pixel(x, y, color);
                         } else {
-                            let color = lerp(Color::RGB(127, 179, 255), Color::RGB(255, 255, 255), y as f64 / self.height as f64);
+                            let color = floor_ceil(x, y, self.width, self.height, &ray);
                             self.set_pixel(x, y, color);
                         }
                     }
                 },
                 None => {
                     for y in 0..self.height {
-                        let color = lerp(Color::RGB(127, 179, 255), Color::RGB(255, 255, 255), y as f64 / self.height as f64);
+                        let color = floor_ceil(x, y, self.width, self.height, &ray);
                         self.set_pixel(x, y, color);
                     }
                 },
@@ -83,6 +82,28 @@ impl<'a> Renderer<'a> {
     /// no bounds check for x
     fn set_pixel(&mut self, x: usize, y: usize, col: Color) {
         self.cpu_texture[x + y*self.width] = col;
+    }
+}
+
+fn floor_ceil(x: usize, y: usize, width: usize, height: usize, r: &Ray) -> Color {
+    // lerp(Color::RGB(127, 179, 255), Color::RGB(255, 255, 255), y as f64 / height as f64)
+    if y < height/2 {
+        let mut y = y as f64 / height as f64 * 2.0;
+        y = 1.0 - y;
+        let pos  = r.origin + r.dir / y;
+        return if (pos.x.floor() + pos.y.floor()) % 2.0 == 0.0 {
+            Color::BLACK
+        } else {
+            Color::WHITE
+        }
+    }
+
+    let y = y as f64 / height as f64 * 2.0 - 1.0;
+    let pos  = r.origin + r.dir / y;
+    if (pos.x.floor() + pos.y.floor()) % 2.0 == 0.0 {
+        Color::BLACK
+    } else {
+        Color::WHITE
     }
 }
 
