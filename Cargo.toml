@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 glam = "0.30.2"
-sdl2 = "0.37.0"
+sdl2 = { version = "0.37.0", features = ["bundled", "static-link"] }
