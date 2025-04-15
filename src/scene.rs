@@ -1,5 +1,5 @@
 use glam::{DVec2, DVec3};
-use sdl2::pixels::Color;
+use sdl3::pixels::Color;
 
 use crate::camera::Ray;
 
@@ -40,8 +40,13 @@ impl Segment {
         }
 
         let intersection = DVec2::new(intersection_3d.x, intersection_3d.y) / intersection_3d.z;
-
-        let t = ((intersection - self.a) / d).x;        
+        
+        let t = (intersection - self.a) / d;
+        let t = if t.x.is_nan() {
+            t.y
+        } else {
+            t.x
+        };
         if !(0.0..=1.0).contains(&t) {
             return None
         }

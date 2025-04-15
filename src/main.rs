@@ -5,9 +5,9 @@ use camera::Camera;
 use glam::DVec2;
 use renderer::Renderer;
 use scene::{Scene, Segment};
-use sdl2::event::Event;
-use sdl2::keyboard::{Keycode, Scancode};
-use sdl2::pixels::Color;
+use sdl3::event::Event;
+use sdl3::keyboard::{Keycode, Scancode};
+use sdl3::pixels::Color;
 
 mod renderer;
 pub mod scene;
@@ -16,26 +16,32 @@ pub mod camera;
 const FPS: usize = 60;
 
 fn main() {
-    let sdl_context = sdl2::init().expect("couldn't init sdl2");
+    let sdl_context = sdl3::init().expect("couldn't init sdl3");
     let video_subsystem = sdl_context.video().expect("couldn't init video subystem");
 
     let mut keys = [false; 512];
 
+    let screen_bounds = video_subsystem.get_primary_display().unwrap().get_bounds().unwrap();
     let window = video_subsystem
-        .window("rustray", 800, 600)
+        .window("rustray", screen_bounds.width(), screen_bounds.height())
         .position_centered()
-        .resizable()
+        .fullscreen()
         .opengl()
         .build()
         .expect("couldn't build window");
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let mut canvas = window.into_canvas();
     let mut texture_creator = canvas.texture_creator();
 
     let mut renderer =
         Renderer::new(&mut texture_creator, 400, 300).expect("couldn't init renderer");
-    let scene = Scene { segments: vec![Segment { a: DVec2::new(1.0, 3.0), b: DVec2::new(-1.0, 3.0), color: Color::RED }] };
-    let mut camera = Camera { pos: DVec2::ZERO, rot: 90.0f64.to_radians(), fov: 60.0f64.to_radians()  };
+    let scene = Scene { segments: vec![
+        Segment { a: DVec2::new(1.0, 1.0), b: DVec2::new(-1.0, 1.0), color: Color::RED },
+        Segment { a: DVec2::new(-1.0, 1.0), b: DVec2::new(-1.0, -1.0), color: Color::GREEN },
+        Segment { a: DVec2::new(-1.0, -1.0), b: DVec2::new(1.0, -1.0), color: Color::BLUE },
+        Segment { a: DVec2::new(1.0, -1.0), b: DVec2::new(1.0, 1.0), color: Color::BLACK },
+    ] };
+    let mut camera = Camera { pos: DVec2::ZERO, rot: 90.0f64.to_radians(), fov: 66.0f64.to_radians()  };
 
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();

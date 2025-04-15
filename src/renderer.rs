@@ -1,5 +1,5 @@
-use sdl2::{
-    pixels::{Color, PixelFormatEnum},
+use sdl3::{
+    pixels::{Color, PixelFormat, PixelMasks},
     render::{Canvas, RenderTarget, Texture, TextureAccess, TextureCreator, TextureValueError},
 };
 
@@ -17,9 +17,9 @@ impl<'a> Renderer<'a> {
         width: usize,
         height: usize,
     ) -> Result<Self, TextureValueError> {
-        Ok(Self {
+        let mut x = Self {
             texture: texture_creator.create_texture(
-                PixelFormatEnum::RGBA32,
+                PixelFormat::from_masks(PixelMasks { bpp: 32, rmask: 0x000000ff, gmask: 0x0000ff00, bmask: 0x00ff0000, amask: 0xff000000 }),
                 TextureAccess::Streaming,
                 width as u32,
                 height as u32,
@@ -27,7 +27,9 @@ impl<'a> Renderer<'a> {
             width,
             height,
             cpu_texture: vec![Color::BLUE; width * height],
-        })
+        };
+        x.texture.set_scale_mode(sdl3::render::ScaleMode::Nearest);
+        Ok(x)
     }
     pub fn draw(&mut self, scene: &Scene, camera: &Camera) {
         for (x, ray) in camera.get_rays(self.width).enumerate() {
