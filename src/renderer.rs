@@ -1,3 +1,4 @@
+use glam::DVec2;
 use sdl3::{
     pixels::{Color, PixelFormat, PixelMasks},
     render::{Canvas, RenderTarget, Texture, TextureAccess, TextureCreator, TextureValueError},
@@ -53,14 +54,14 @@ impl<'a> Renderer<'a> {
                         if (space..end_y).contains(&y) {
                             self.set_pixel(x, y, color);
                         } else {
-                            let color = floor_ceil(x, y, self.width, self.height, &ray);
+                            let color = floor_ceil(y, self.height, &ray, camera);
                             self.set_pixel(x, y, color);
                         }
                     }
                 },
                 None => {
                     for y in 0..self.height {
-                        let color = floor_ceil(x, y, self.width, self.height, &ray);
+                        let color = floor_ceil(y, self.height, &ray, camera);
                         self.set_pixel(x, y, color);
                     }
                 },
@@ -85,21 +86,20 @@ impl<'a> Renderer<'a> {
     }
 }
 
-fn floor_ceil(x: usize, y: usize, width: usize, height: usize, r: &Ray) -> Color {
-    // lerp(Color::RGB(127, 179, 255), Color::RGB(255, 255, 255), y as f64 / height as f64)
-    if y < height/2 {
-        let mut y = y as f64 / height as f64 * 2.0;
-        y = 1.0 - y;
-        let pos  = r.origin + r.dir / y;
-        return if (pos.x.floor() + pos.y.floor()) % 2.0 == 0.0 {
-            Color::BLACK
-        } else {
-            Color::WHITE
-        }
-    }
+fn floor_ceil(y: usize, height: usize, r: &Ray, camera: &Camera) -> Color {
+    let v = if y < height/2 {
+        1.0 - y as f64 / height as f64 * 2.0
+    } else {
+        y as f64 / height as f64 * 2.0 - 1.0
+    };
 
-    let y = y as f64 / height as f64 * 2.0 - 1.0;
-    let pos  = r.origin + r.dir / y;
+    let corrected_dist = 1.0 / v;
+    if corrected_dist > 25.0 {
+        return Color::CYAN;
+    }
+    let real_dist = corrected_dist / r.dir.project_onto(DVec2::from_angle(camera.rot)).length() * camera.fov;
+
+    let pos  = r.origin + r.dir * real_dist;
     if (pos.x.floor() + pos.y.floor()) % 2.0 == 0.0 {
         Color::BLACK
     } else {

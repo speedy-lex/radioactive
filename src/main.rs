@@ -34,7 +34,7 @@ fn main() {
     let mut texture_creator = canvas.texture_creator();
 
     let mut renderer =
-        Renderer::new(&mut texture_creator, 400, 300).expect("couldn't init renderer");
+        Renderer::new(&mut texture_creator, 600, 400).expect("couldn't init renderer");
     let scene = Scene { segments: vec![
         Segment { a: DVec2::new(1.0, 1.0), b: DVec2::new(-1.0, 1.0), color: Color::RED },
         Segment { a: DVec2::new(-1.0, 1.0), b: DVec2::new(-1.0, -1.0), color: Color::GREEN },
@@ -75,7 +75,7 @@ fn main() {
         }
         if keys[Scancode::W as usize] {
             let vector = DVec2::from_angle(camera.rot);
-            camera.pos += vector * dt;
+            camera.pos += 2.0 * vector * dt;
         }
         if keys[Scancode::S as usize] {
             let vector = DVec2::from_angle(PI + camera.rot);
