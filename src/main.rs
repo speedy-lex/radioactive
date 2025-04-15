@@ -41,7 +41,7 @@ fn main() {
         Segment { a: DVec2::new(-1.0, -1.0), b: DVec2::new(1.0, -1.0), color: Color::BLUE },
         Segment { a: DVec2::new(1.0, -1.0), b: DVec2::new(1.0, 1.0), color: Color::BLACK },
     ] };
-    let mut camera = Camera { pos: DVec2::ZERO, rot: 90.0f64.to_radians(), fov: 66.0f64.to_radians()  };
+    let mut camera = Camera { pos: DVec2::ZERO, rot: 90.0f64.to_radians(), fov: 66.0f64.to_radians() };
 
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
