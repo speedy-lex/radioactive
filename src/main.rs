@@ -1,12 +1,13 @@
 use std::f64::consts::{FRAC_PI_2, PI};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use audio::{AudioData, AudioHandler};
 use camera::{Camera, Ray};
 use glam::DVec2;
-use rand::{rng, Rng};
 use renderer::Renderer;
 use scene::{Scene, Segment};
-use sdl3::audio::{AudioCallback, AudioFormat, AudioSpec};
+use sdl3::audio::{AudioFormat, AudioSpec};
 use sdl3::event::Event;
 use sdl3::keyboard::{Keycode, Scancode};
 use texture::{BlendMode, Texture};
@@ -15,6 +16,7 @@ mod renderer;
 pub mod scene;
 pub mod camera;
 pub mod texture;
+mod audio;
 
 const FPS: usize = 60;
 
@@ -37,8 +39,9 @@ fn main() {
     mouse.show_cursor(false);
     mouse.set_relative_mouse_mode(&window, true);
 
+    let audio_data = Arc::new(Mutex::new(AudioData { white_noise: 0.0 }));
     let sound = sdl_context.audio().unwrap();
-    let stream = sound.open_playback_stream(&AudioSpec::new(Some(44100), Some(1), Some(AudioFormat::s16_sys())), Audio {  }).unwrap();
+    let stream = sound.open_playback_stream(&AudioSpec::new(Some(44100), Some(1), Some(AudioFormat::f32_sys())), AudioHandler::new(audio_data.clone(), 44100)).unwrap();
     stream.resume().unwrap();
 
     let mut canvas = window.into_canvas();
@@ -125,6 +128,7 @@ fn main() {
 
         
         camera.noise = (1.0 - (camera.pos.x.abs() - 5.0).max(0.0) / 10.0).clamp(0.3, 0.995);
+        audio_data.lock().unwrap().white_noise = (camera.noise - 0.2) as f32 / 3.0;
         
         {
             let old_width = renderer.width();
@@ -150,13 +154,5 @@ fn main() {
             std::thread::sleep(Duration::from_secs_f64(to_sleep));
         }
         dt = start.elapsed().as_secs_f64();
-    }
-}
-
-struct Audio {}
-impl AudioCallback<i16> for Audio {
-    fn callback(&mut self, stream: &mut sdl3::audio::AudioStream, requested: i32) {
-        let mut rng = rng();
-        stream.put_data_i16(&(0..requested).map(|_| rng.random::<i16>() / 4).collect::<Vec<_>>()).unwrap()
     }
 }
