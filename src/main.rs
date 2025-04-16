@@ -6,10 +6,9 @@ use glam::DVec2;
 use rand::{rng, Rng};
 use renderer::Renderer;
 use scene::{Scene, Segment};
-use sdl3::audio::{AudioCallback, AudioFormatNum, AudioSpec};
+use sdl3::audio::{AudioCallback, AudioFormat, AudioSpec};
 use sdl3::event::Event;
 use sdl3::keyboard::{Keycode, Scancode};
-use sdl3::AudioSubsystem;
 use texture::{BlendMode, Texture};
 
 mod renderer;
@@ -39,7 +38,8 @@ fn main() {
     mouse.set_relative_mouse_mode(&window, true);
 
     let sound = sdl_context.audio().unwrap();
-    sound.open_playback_stream(&AudioSpec::default(), Audio {  });
+    let stream = sound.open_playback_stream(&AudioSpec::new(Some(44100), Some(1), Some(AudioFormat::s16_sys())), Audio {  }).unwrap();
+    stream.resume().unwrap();
 
     let mut canvas = window.into_canvas();
     let texture_creator = canvas.texture_creator();
@@ -157,6 +157,6 @@ struct Audio {}
 impl AudioCallback<i16> for Audio {
     fn callback(&mut self, stream: &mut sdl3::audio::AudioStream, requested: i32) {
         let mut rng = rng();
-        stream.put_data_f32(&(0..requested).map(|_| rng.random()).collect::<Vec<_>>()).unwrap()
+        stream.put_data_i16(&(0..requested).map(|_| rng.random::<i16>() / 4).collect::<Vec<_>>()).unwrap()
     }
 }
