@@ -39,8 +39,8 @@ fn main() {
     let texture_creator = canvas.texture_creator();
 
 
-    let width = 600;
-    let height = 400;
+    let width = 800;
+    let height = 600;
     let mut renderer =
         Renderer::new(&texture_creator, width, height).expect("couldn't init renderer");
     let scene = Scene { segments: vec![
