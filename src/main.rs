@@ -7,7 +7,7 @@ use renderer::Renderer;
 use scene::{Scene, Segment};
 use sdl3::event::Event;
 use sdl3::keyboard::{Keycode, Scancode};
-use texture::Texture;
+use texture::{BlendMode, Texture};
 
 mod renderer;
 pub mod scene;
@@ -42,9 +42,9 @@ fn main() {
         Segment { a: DVec2::new(1000.0, 0.5), b: DVec2::new(-1000.0, 0.5), texture: Texture::Repeat(bmp::open("./brick.bmp").unwrap()) },
         Segment { a: DVec2::new(-1000.0, -0.5), b: DVec2::new(1000.0, -0.5), texture: Texture::Repeat(bmp::open("./brick.bmp").unwrap()) },
         Segment { a: DVec2::new(25.0, -0.5), b: DVec2::new(25.0, 0.5), texture: Texture::Stretch(bmp::open("./brick.bmp").unwrap()) },
-        Segment { a: DVec2::new(0.0, -0.5), b: DVec2::new(0.0, 0.5), texture: Texture::Glitch },
+        Segment { a: DVec2::new(0.0, -0.5), b: DVec2::new(0.0, 0.5), texture: Texture::Compound(Box::new(Texture::Glitch(0.5)), Box::new(Texture::Stretch(bmp::open("./eyes.bmp").unwrap())), BlendMode::Multiply) },
     ] };
-    let mut camera = Camera { pos: DVec2::ZERO, rot: 0.0f64.to_radians(), fov: 66.0f64.to_radians(), noise: 0.0 };
+    let mut camera = Camera { pos: DVec2::new(24.5, 0.0), rot: 180.0f64.to_radians(), fov: 66.0f64.to_radians(), noise: 0.0 };
 
     let mut event_pump = sdl_context.event_pump().expect("couldn't init event pump");
 
@@ -105,7 +105,7 @@ fn main() {
         }
 
         
-        camera.noise = (1.0 - camera.pos.x.abs() / 10.0).clamp(0.3, 0.98);
+        camera.noise = (1.0 - (camera.pos.x.abs() - 5.0).max(0.0) / 10.0).clamp(0.3, 0.995);
         
         {
             let old_width = renderer.width();

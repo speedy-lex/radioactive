@@ -5,7 +5,7 @@ use sdl3::{
     render::{Canvas, RenderTarget, Texture, TextureAccess, TextureCreator, TextureValueError}, sys::pixels::SDL_PIXELFORMAT_RGB96_FLOAT,
 };
 
-use crate::{camera::{Camera, Ray}, scene::{HitData, Scene}, texture};
+use crate::{camera::{Camera, Ray}, scene::{HitData, Scene}};
 
 pub struct Renderer<'a> {
     texture: Texture<'a>,
@@ -35,7 +35,7 @@ impl<'a> Renderer<'a> {
     }
     pub fn draw(&mut self, scene: &Scene, camera: &Camera, dt: f64) {
         for pixel in self.cpu_texture.iter_mut() {
-            *pixel *= (-dt).exp() as f32;
+            *pixel *= ((1.0 - camera.noise/2.0) * -dt).exp() as f32;
         }
         let distribution = Bernoulli::new(camera.noise).unwrap();
         let mut rng = rng();
@@ -59,7 +59,7 @@ impl<'a> Renderer<'a> {
 
                     for y in 0..self.height {
                         if (space..end_y).contains(&y) {
-                            if segment.texture != texture::Texture::Glitch && distribution.sample(&mut rng) {
+                            if !segment.texture.contains_glitch() && distribution.sample(&mut rng) {
                                 continue;
                             }
                             let mut color = segment.texture.sample(DVec2::new(u, (y + height/2 - self.height/2) as f64 / height as f64), (segment.b - segment.a).length(), &mut rng);
