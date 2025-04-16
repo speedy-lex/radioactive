@@ -10,6 +10,7 @@ pub struct Camera {
     pub pos: DVec2,
     pub rot: f64,
     pub fov: f64,
+    pub noise: f64,
 }
 impl Camera {
     pub fn get_rays(&self, n: usize) -> impl Iterator<Item = Ray> {

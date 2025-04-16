@@ -1,17 +1,18 @@
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::time::Duration;
 
-use camera::Camera;
+use camera::{Camera, Ray};
 use glam::DVec2;
 use renderer::Renderer;
 use scene::{Scene, Segment};
 use sdl3::event::Event;
 use sdl3::keyboard::{Keycode, Scancode};
-use sdl3::pixels::Color;
+use texture::Texture;
 
 mod renderer;
 pub mod scene;
 pub mod camera;
+pub mod texture;
 
 const FPS: usize = 60;
 
@@ -31,21 +32,20 @@ fn main() {
         .expect("couldn't build window");
 
     let mut canvas = window.into_canvas();
-    let mut texture_creator = canvas.texture_creator();
+    let texture_creator = canvas.texture_creator();
 
+    let width = 600;
+    let height = 400;
     let mut renderer =
-        Renderer::new(&mut texture_creator, 600, 400).expect("couldn't init renderer");
+        Renderer::new(&texture_creator, width, height).expect("couldn't init renderer");
     let scene = Scene { segments: vec![
-        Segment { a: DVec2::new(1.0, 1.0), b: DVec2::new(-1.0, 1.0), color: Color::RED },
-        Segment { a: DVec2::new(-1.0, 1.0), b: DVec2::new(-1.0, -1.0), color: Color::GREEN },
-        Segment { a: DVec2::new(-1.0, -1.0), b: DVec2::new(1.0, -1.0), color: Color::BLUE },
-        Segment { a: DVec2::new(1.0, -1.0), b: DVec2::new(1.0, 1.0), color: Color::BLACK },
+        Segment { a: DVec2::new(1000.0, 0.5), b: DVec2::new(-1000.0, 0.5), texture: Texture::Repeat(bmp::open("./brick.bmp").unwrap()) },
+        Segment { a: DVec2::new(-1000.0, -0.5), b: DVec2::new(1000.0, -0.5), texture: Texture::Repeat(bmp::open("./brick.bmp").unwrap()) },
+        Segment { a: DVec2::new(25.0, -0.5), b: DVec2::new(25.0, 0.5), texture: Texture::Stretch(bmp::open("./brick.bmp").unwrap()) },
+        Segment { a: DVec2::new(0.0, -0.5), b: DVec2::new(0.0, 0.5), texture: Texture::Glitch },
     ] };
-    let mut camera = Camera { pos: DVec2::ZERO, rot: 90.0f64.to_radians(), fov: 66.0f64.to_radians() };
+    let mut camera = Camera { pos: DVec2::ZERO, rot: 0.0f64.to_radians(), fov: 66.0f64.to_radians(), noise: 0.0 };
 
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    canvas.clear();
-    canvas.present();
     let mut event_pump = sdl_context.event_pump().expect("couldn't init event pump");
 
     let mut dt = 0.0;
@@ -73,6 +73,7 @@ fn main() {
         if keys[Scancode::Right as usize] {
             camera.rot += dt;
         }
+        let old = camera.pos;
         if keys[Scancode::W as usize] {
             let vector = DVec2::from_angle(camera.rot);
             camera.pos += 2.0 * vector * dt;
@@ -89,10 +90,39 @@ fn main() {
             let vector = DVec2::from_angle(FRAC_PI_2 + camera.rot);
             camera.pos += vector * dt;
         }
+        // undo illegal moves
+        // FIXME: stop clipping (implement proper collide and slide)
+        {
+            let hit = scene.sample(&Ray {
+                origin: camera.pos,
+                dir: camera.pos - old,
+            });
+            if let Some(h) = hit {
+                if (0.0..=1.1).contains(&h.dist) {
+                    camera.pos = old;
+                }
+            }
+        }
 
-        renderer.draw(&scene, &camera);
+        
+        camera.noise = (1.0 - camera.pos.x.abs() / 10.0).clamp(0.3, 0.98);
+        
+        {
+            let old_width = renderer.width();
+            let old_height = renderer.height();
+            
+            let new_width = (width as f64 / (1.0 + 2.0 * (camera.noise - 0.3))) as usize;
+            let new_height = (height as f64 / (1.0 + 2.0 * (camera.noise - 0.3))) as usize;
+            
+            if new_height.abs_diff(old_height) >= 10 {
+                let old = renderer.into_cpu_texture();
+                renderer = Renderer::new(&texture_creator, new_width, new_height).unwrap();
+                renderer.set_cpu_texture(old, old_width, old_height);
+            }
+        }
+        renderer.draw(&scene, &camera, dt);
 
-        canvas.clear();
+        // canvas.clear();
         renderer.blit(&mut canvas);
         canvas.present();
         let elapsed = start.elapsed().as_secs_f64();
