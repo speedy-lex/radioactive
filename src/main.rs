@@ -31,8 +31,13 @@ fn main() {
         .build()
         .expect("couldn't build window");
 
+    let mouse = sdl_context.mouse();
+    mouse.show_cursor(false);
+    mouse.set_relative_mouse_mode(&window, true);
+
     let mut canvas = window.into_canvas();
     let texture_creator = canvas.texture_creator();
+
 
     let width = 600;
     let height = 400;
@@ -64,6 +69,9 @@ fn main() {
                 Event::KeyUp { scancode: Some(scan), .. } => {
                     keys[scan as usize] = false
                 }
+                Event::MouseMotion { xrel, .. } => {
+                    camera.rot += xrel as f64 / 700.0;
+                }
                 _ => {}
             }
         }
@@ -76,7 +84,12 @@ fn main() {
         let old = camera.pos;
         if keys[Scancode::W as usize] {
             let vector = DVec2::from_angle(camera.rot);
-            camera.pos += 2.0 * vector * dt;
+            let speed = if keys[Scancode::LCtrl as usize] {
+                3.0
+            } else {
+                2.0
+            };
+            camera.pos += speed * vector * dt;
         }
         if keys[Scancode::S as usize] {
             let vector = DVec2::from_angle(PI + camera.rot);
