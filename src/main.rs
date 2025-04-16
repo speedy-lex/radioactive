@@ -3,10 +3,13 @@ use std::time::Duration;
 
 use camera::{Camera, Ray};
 use glam::DVec2;
+use rand::{rng, Rng};
 use renderer::Renderer;
 use scene::{Scene, Segment};
+use sdl3::audio::{AudioCallback, AudioFormatNum, AudioSpec};
 use sdl3::event::Event;
 use sdl3::keyboard::{Keycode, Scancode};
+use sdl3::AudioSubsystem;
 use texture::{BlendMode, Texture};
 
 mod renderer;
@@ -34,6 +37,9 @@ fn main() {
     let mouse = sdl_context.mouse();
     mouse.show_cursor(false);
     mouse.set_relative_mouse_mode(&window, true);
+
+    let sound = sdl_context.audio().unwrap();
+    sound.open_playback_stream(&AudioSpec::default(), Audio {  });
 
     let mut canvas = window.into_canvas();
     let texture_creator = canvas.texture_creator();
@@ -144,5 +150,13 @@ fn main() {
             std::thread::sleep(Duration::from_secs_f64(to_sleep));
         }
         dt = start.elapsed().as_secs_f64();
+    }
+}
+
+struct Audio {}
+impl AudioCallback<i16> for Audio {
+    fn callback(&mut self, stream: &mut sdl3::audio::AudioStream, requested: i32) {
+        let mut rng = rng();
+        stream.put_data_f32(&(0..requested).map(|_| rng.random()).collect::<Vec<_>>()).unwrap()
     }
 }
