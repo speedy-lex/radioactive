@@ -48,8 +48,8 @@ fn main() {
     let texture_creator = canvas.texture_creator();
 
 
-    let width = 720;
-    let height = 540;
+    let width = 480;
+    let height = 270;
     let mut renderer =
         Renderer::new(&texture_creator, width, height).expect("couldn't init renderer");
     let scene = Scene { segments: vec![
@@ -63,7 +63,7 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().expect("couldn't init event pump");
 
     let mut dt = 0.0;
-    'running: loop {
+    'mainloop: loop {
         let start = std::time::Instant::now();
         for event in event_pump.poll_iter() {
             match event {
@@ -71,7 +71,7 @@ fn main() {
                 | Event::KeyDown {
                     keycode: Some(Keycode::Escape),
                     ..
-                } => break 'running,
+                } => break 'mainloop,
                 Event::KeyDown { scancode: Some(scan), .. } => {
                     keys[scan as usize] = true
                 }
@@ -90,40 +90,60 @@ fn main() {
         if keys[Scancode::Right as usize] {
             camera.rot += dt;
         }
-        let old = camera.pos;
+
+
+        let mut movement = DVec2::new(0.0, 0.0);
         if keys[Scancode::W as usize] {
             let vector = DVec2::from_angle(camera.rot);
-            let speed = if keys[Scancode::LCtrl as usize] {
-                3.0
-            } else {
-                2.0
-            };
-            camera.pos += speed * vector * dt;
+            movement += vector;
         }
         if keys[Scancode::S as usize] {
             let vector = DVec2::from_angle(PI + camera.rot);
-            camera.pos += vector * dt;
+            movement += vector;
         }
         if keys[Scancode::A as usize] {
             let vector = DVec2::from_angle(-FRAC_PI_2 + camera.rot);
-            camera.pos += vector * dt;
+            movement += vector / 1.0;
         }
         if keys[Scancode::D as usize] {
             let vector = DVec2::from_angle(FRAC_PI_2 + camera.rot);
-            camera.pos += vector * dt;
+            movement += vector / 1.0;
         }
-        // undo illegal moves
-        // FIXME: stop clipping (implement proper collide and slide)
+        movement = movement.normalize_or_zero();
+        let speed = if keys[Scancode::LCtrl as usize] {
+            3.0
+        } else {
+            1.5
+        };
+        movement *= speed * dt;
         {
-            let hit = scene.sample(&Ray {
-                origin: camera.pos,
-                dir: camera.pos - old,
-            });
-            if let Some(h) = hit {
-                if (0.0..=1.1).contains(&h.dist) {
-                    camera.pos = old;
+            let hit_data = scene.sample(&Ray { origin: camera.pos, dir: movement });
+            if let Some(data) = hit_data {
+                let b = 0.1;
+                if (0.0..).contains(&data.dist) {
+                    let wall_vec = data.segment.a - data.segment.b;
+                    let mut normal = DVec2::new(wall_vec.y, -wall_vec.x).normalize();
+                    if movement.dot(normal) > 0.0 {
+                        normal = -normal;
+                    }
+                    dbg!(wall_vec, normal, movement);
+                    assert!(movement.dot(normal) <= 0.0);
+                    let theta = -(normal.dot(movement.normalize()));
+                    let a = b / theta.tan();
+                    let c = a.hypot(b);
+                    dbg!(a, b, c, theta);
+                    let len = movement.length();
+                    let max_dist = data.dist * len - c;
+                    if len > max_dist {
+                        let mut rem = movement;
+                        movement = movement.normalize() * max_dist;
+                        rem -= movement;
+                        movement += rem.project_onto(wall_vec);
+                    }
+                    dbg!(movement);
                 }
             }
+            camera.pos += movement;
         }
 
         camera.noise = (1.0 - (camera.pos.x.abs() - 1.0).max(0.0) / 10.0).clamp(0.3, 0.998);
