@@ -31,8 +31,8 @@ impl AudioCallback<f32> for AudioHandler {
         for _ in 0..(requested as usize) {
             t += 1.0 / self.samples as f64;
             let white_noise = rng.random_range(-1.0..=1.0) * 0.5 * data.white_noise;
-            let middle_c = (Wave::new(WaveType::Saw, 440.0, 0.5).get(t) + Wave::new(WaveType::Sine, 440.0, 0.5).get(t) + Wave::new(WaveType::Square, 440.0, 0.5).get(t)) as f32 * data.white_noise;
-            self.buffer.push(white_noise + middle_c);
+            let noise = (Wave::new(WaveType::Saw, 440.0, 0.5).get(t) + Wave::new(WaveType::Sine, 440.0, 0.5).get(t) + Wave::new(WaveType::Square, 440.0, 0.5).get(t)) as f32 * data.white_noise;
+            self.buffer.push(white_noise + noise);
         }
 
         stream.put_data_f32(&self.buffer).unwrap();
