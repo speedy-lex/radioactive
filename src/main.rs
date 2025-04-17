@@ -126,21 +126,15 @@ fn main() {
                     if movement.dot(normal) > 0.0 {
                         normal = -normal;
                     }
-                    dbg!(wall_vec, normal, movement);
                     assert!(movement.dot(normal) <= 0.0);
                     let theta = -(normal.dot(movement.normalize()));
                     let a = b / theta.tan();
                     let c = a.hypot(b);
-                    dbg!(a, b, c, theta);
                     let len = movement.length();
                     let max_dist = data.dist * len - c;
                     if len > max_dist {
-                        let mut rem = movement;
                         movement = movement.normalize() * max_dist;
-                        rem -= movement;
-                        movement += rem.project_onto(wall_vec);
                     }
-                    dbg!(movement);
                 }
             }
             camera.pos += movement;
