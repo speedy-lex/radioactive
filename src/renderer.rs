@@ -87,9 +87,15 @@ impl<'a> Renderer<'a> {
         }
 
         self.texture.with_lock(None, |x, y| {
-            for (bytes, colors) in x.chunks_mut(y).zip(self.cpu_texture.chunks(self.width)) {
-                bytes[..std::mem::size_of_val(colors)].copy_from_slice(unsafe {
-                    std::slice::from_raw_parts(colors.as_ptr().cast(), std::mem::size_of_val(colors))
+            if y != self.width * size_of::<Vec3>() {
+                for (bytes, colors) in x.chunks_mut(y).zip(self.cpu_texture.chunks(self.width)) {
+                    bytes[..std::mem::size_of_val(colors)].copy_from_slice(unsafe {
+                        std::slice::from_raw_parts(colors.as_ptr().cast(), std::mem::size_of_val(colors))
+                    });
+                }
+            } else {
+                x.copy_from_slice(unsafe {
+                    std::slice::from_raw_parts(self.cpu_texture.as_ptr().cast(), std::mem::size_of_val(self.cpu_texture.as_slice()))
                 });
             }
         }).expect("texture error");
@@ -122,7 +128,7 @@ impl<'a> Renderer<'a> {
 
     /// no bounds check for x
     fn set_pixel(&mut self, x: usize, y: usize, col: Vec3) {
-        self.cpu_texture[x + y*self.width] = col.powf(2.2);
+        self.cpu_texture[x + y*self.width] = Vec3::new(col.x.powi(2), col.y.powi(2), col.z.powi(2));
     }
 }
 
