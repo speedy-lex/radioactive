@@ -21,7 +21,7 @@ impl<'a> Renderer<'a> {
     ) -> Result<Self, TextureValueError> {
         let mut x = Self {
             texture: texture_creator.create_texture(
-                unsafe { PixelFormat::from_ll(SDL_PIXELFORMAT_RGB96_FLOAT) }, //::from_masks(PixelMasks { bpp: 32, rmask: 0x000000ff, gmask: 0x0000ff00, bmask: 0x00ff0000, amask: 0xff000000 }),
+                unsafe { PixelFormat::from_ll(SDL_PIXELFORMAT_RGB96_FLOAT) },
                 TextureAccess::Streaming,
                 width as u32,
                 height as u32,
@@ -34,11 +34,11 @@ impl<'a> Renderer<'a> {
         Ok(x)
     }
     pub fn draw(&mut self, scene: &Scene, camera: &Camera, dt: f64) {
+        let mut rng = rng();
         for pixel in self.cpu_texture.iter_mut() {
             *pixel *= ((1.0 - camera.noise/2.0) * -dt).exp() as f32;
         }
-        let distribution = Bernoulli::new(camera.noise).unwrap();
-        let mut rng = rng();
+        let distribution = Bernoulli::new(camera.noise.min(1.0)).unwrap();
         for (x, ray) in camera.get_rays(self.width).enumerate() {
             match scene.sample(&ray) {
                 Some(HitData {
@@ -63,7 +63,7 @@ impl<'a> Renderer<'a> {
                                 continue;
                             }
                             let mut color = segment.texture.sample(DVec2::new(u, (y + height/2 - self.height/2) as f64 / height as f64), (segment.b - segment.a).length(), &mut rng);
-                            color *= (2.0 / dist).min(1.0) as f32;
+                            color *= (camera.fog_dist / dist).min(1.0) as f32;
                             self.set_pixel(x, y, color);
                         } else {
                             if distribution.sample(&mut rng) {
@@ -143,5 +143,5 @@ fn floor_ceil(y: usize, width: usize, height: usize, r: &Ray, camera: &Camera) -
     } else {
         Vec3::splat(0.2)
     };
-    color * (2.0 / real_dist).min(1.0) as f32
+    color * (camera.fog_dist / real_dist).min(1.0) as f32
 }

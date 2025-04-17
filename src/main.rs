@@ -58,7 +58,7 @@ fn main() {
         Segment { a: DVec2::new(25.0, -0.5), b: DVec2::new(25.0, 0.5), texture: Texture::Stretch(bmp::open("./brick.bmp").unwrap()) },
         Segment { a: DVec2::new(0.0, -0.5), b: DVec2::new(0.0, 0.5), texture: Texture::Compound(Box::new(Texture::Glitch(0.5)), Box::new(Texture::Stretch(bmp::open("./eyes.bmp").unwrap())), BlendMode::Multiply) },
     ] };
-    let mut camera = Camera { pos: DVec2::new(24.5, 0.0), rot: 180.0f64.to_radians(), fov: 66.0f64.to_radians(), noise: 0.0 };
+    let mut camera = Camera { pos: DVec2::new(24.5, 0.0), rot: 180.0f64.to_radians(), fov: 66.0f64.to_radians(), noise: 0.0, fog_dist: 1000.0 };
 
     let mut event_pump = sdl_context.event_pump().expect("couldn't init event pump");
 
@@ -126,16 +126,15 @@ fn main() {
             }
         }
 
-        
-        camera.noise = (1.0 - (camera.pos.x.abs() - 5.0).max(0.0) / 10.0).clamp(0.3, 0.995);
+        camera.noise = (1.0 - (camera.pos.x.abs() - 1.0).max(0.0) / 10.0).clamp(0.3, 0.995);
         audio_data.lock().unwrap().white_noise = (camera.noise - 0.2) as f32 / 3.0;
         
         {
             let old_width = renderer.width();
             let old_height = renderer.height();
             
-            let new_width = (width as f64 / (1.0 + 2.0 * (camera.noise - 0.3))) as usize;
-            let new_height = (height as f64 / (1.0 + 2.0 * (camera.noise - 0.3))) as usize;
+            let new_width = (width as f64 / (1.0 + 2.0 * (camera.noise - 0.3).max(0.0))) as usize;
+            let new_height = (height as f64 / (1.0 + 2.0 * (camera.noise - 0.3).max(0.0))) as usize;
             
             if new_height.abs_diff(old_height) >= 10 {
                 let old = renderer.into_cpu_texture();
