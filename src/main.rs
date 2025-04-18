@@ -127,7 +127,7 @@ fn main() {
                         normal = -normal;
                     }
                     assert!(movement.dot(normal) <= 0.0);
-                    let theta = -(normal.dot(movement.normalize()));
+                    let theta = FRAC_PI_2 - (normal.dot(-movement.normalize())).acos();
                     let a = b / theta.tan();
                     let c = a.hypot(b);
                     let len = movement.length();
